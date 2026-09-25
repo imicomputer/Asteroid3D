@@ -1,0 +1,23 @@
+{
+  "name": "asteroid3d",
+  "version": "1.0.0",
+  "description": "Asteroid game clone with 3D graphic using WebGPU library. Build by using VSCode Copilot AI assistant.",
+  "keywords": [
+    "asteroid3d"
+  ],
+  "homepage": "https://github.com/imicomputer/Asteroid3D#readme",
+  "bugs": {
+    "url": "https://github.com/imicomputer/Asteroid3D/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imicomputer/Asteroid3D.git"
+  },
+  "license": "MIT",
+  "author": "IMI Comp",
+  "type": "commonjs",
+  "main": "Asteroid3D.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
