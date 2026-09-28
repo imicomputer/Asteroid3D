@@ -17,8 +17,9 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 100dvh;
       overflow: hidden;
+      touch-action: none;
       background: radial-gradient(circle at 50% 35%, #101d38 0%, #050914 55%, #010204 100%);
       color: var(--text);
       font-family: Inter, Segoe UI, Arial, sans-serif;
@@ -27,11 +28,11 @@
     canvas { width: 100%; height: 100%; display: block; }
     .hud {
       position: fixed;
-      top: 12px;
-      left: 12px;
-      right: 12px;
+      top: max(12px, env(safe-area-inset-top));
+      left: max(12px, env(safe-area-inset-left));
+      right: max(12px, env(safe-area-inset-right));
       display: flex;
-      justify-content: space-between;
+      align-items: flex-start;
       gap: 12px;
       pointer-events: none;
       z-index: 5;
@@ -53,6 +54,8 @@
     #shieldFill { background: linear-gradient(90deg, #37f2ff, #4d7cff); }
     #livesRow { color: var(--orange); letter-spacing: 3px; font-size: 18px; min-height: 24px; }
     .controls { text-align: right; font-size: 12px; color: #c9e7ff; }
+    .hud > .panel:first-child { flex: 0 1 auto; min-width: 0; }
+    .controls { margin-left: auto; }
     .controls kbd {
       display: inline-block;
       min-width: 24px;
@@ -67,6 +70,9 @@
       text-align: center;
     }
     .top-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; pointer-events: auto; }
+    .icon { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -0.18em; fill: none; }
+    .icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .icon-button { display: inline-flex; align-items: center; gap: 6px; }
     button {
       border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(84,232,255,.22), rgba(20,60,110,.65));
@@ -119,32 +125,60 @@
       transition: opacity .25s ease;
       pointer-events: none;
     }
-    #touch { position: fixed; inset: auto 0 14px 0; display: none; justify-content: space-between; padding: 0 16px; z-index: 6; }
+    #touch { position: fixed; inset: auto 0 max(14px, env(safe-area-inset-bottom)) 0; display: none; justify-content: space-between; padding: 0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right)); z-index: 6; pointer-events: none; }
     #touch .cluster { display: flex; gap: 10px; }
-    #touch button { width: 64px; height: 64px; border-radius: 50%; font-size: 20px; touch-action: none; }
-    @media (pointer: coarse) { #touch { display: flex; } .controls { display: none; } }
+    #touch button { width: clamp(52px, 15vw, 72px); height: clamp(52px, 15vw, 72px); border-radius: 50%; font-size: 20px; touch-action: none; pointer-events: auto; padding: 0; }
+    #touch button .icon { width: 1.5em; height: 1.5em; }
+    button:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; }
+    @media (pointer: coarse) {
+      #touch { display: flex; }
+    }
+    @media (max-width: 720px) {
+      .controls { display: none; }
+      .hud { display: grid; grid-template-columns: 1fr; }
+      .hud > .panel:first-child { width: min(100%, 25rem); }
+      .hud > .panel { padding: 8px 11px; }
+    }
+    @media (max-height: 560px) {
+      .card { padding: 18px; max-height: calc(100dvh - 24px); overflow: auto; }
+      .legend { margin-top: 8px; }
+      .hud { top: max(6px, env(safe-area-inset-top)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
   </style>
 </head>
 <body>
   <div id="stage"><canvas id="gpu"></canvas></div>
+  <svg class="icon-sprite" aria-hidden="true" focusable="false">
+    <symbol id="rotate-left" viewBox="0 0 24 24"><path d="M7 7H3V3M3 7a9 9 0 1 1 2.64 6.36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="rotate-right" viewBox="0 0 24 24"><path d="M17 7h4V3m0 4a9 9 0 1 0-2.64 6.36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="thrust" viewBox="0 0 24 24"><path d="m12 3 6 8h-4v5h-4v-5H6l6-8Zm-4 14-2 4m6-4-2 4m6-4-2 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="fire" viewBox="0 0 24 24"><path d="m13 2-2 7H6l5 4-2 8 9-11h-5l1-8Z" fill="currentColor"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3 20 6v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6l8-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m8.5 12 2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="pause" viewBox="0 0 24 24"><path d="M7 5v14M17 5v14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+    <symbol id="restart" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.68M4 4v4.68h4.68" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="volume-on" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10H4Zm12.5-2a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
 
-  <div class="hud">
+  <div class="hud" aria-label="Status permainan">
     <div class="panel">
       <div class="score" id="score">0</div>
       <div class="sub"><span>Gelombang <b id="wave">1</b></span><span>Terbaik <b id="best">0</b></span><span>Asteroid <b id="rocks">0</b></span></div>
       <div class="bars">
         <div>Perisai</div>
-        <div class="bar"><div id="shieldFill"></div></div>
-        <div id="livesRow">◆◆◆</div>
+        <div class="bar" role="progressbar" aria-label="Perisai" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="shieldFill"></div></div>
+        <div id="livesRow" aria-label="3 nyawa tersisa">◆◆◆</div>
       </div>
     </div>
     <div class="panel controls">
       <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / panah gerak &amp; belok</div>
       <div><kbd>Spasi</kbd> tembak &nbsp; <kbd>Shift</kbd> perisai &nbsp; <kbd>P</kbd> jeda</div>
       <div class="top-buttons">
-        <button id="pauseBtn" class="ghost" type="button">Jeda</button>
-        <button id="soundBtn" class="ghost" type="button">Suara: On</button>
-        <button id="restartBtn" class="ghost" type="button">Ulangi</button>
+        <button id="pauseBtn" class="ghost icon-button" type="button" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#pause"></use></svg><span>Jeda</span></button>
+        <button id="soundBtn" class="ghost icon-button" type="button"><svg class="icon" aria-hidden="true"><use href="#volume-on"></use></svg><span>Suara: On</span></button>
+        <button id="restartBtn" class="ghost icon-button" type="button"><svg class="icon" aria-hidden="true"><use href="#restart"></use></svg><span>Ulangi</span></button>
       </div>
     </div>
   </div>
@@ -153,13 +187,13 @@
 
   <div id="touch">
     <div class="cluster">
-      <button data-k="left" type="button">◀</button>
-      <button data-k="right" type="button">▶</button>
+      <button data-k="left" type="button" aria-label="Putar kiri"><svg class="icon" aria-hidden="true"><use href="#rotate-left"></use></svg></button>
+      <button data-k="right" type="button" aria-label="Putar kanan"><svg class="icon" aria-hidden="true"><use href="#rotate-right"></use></svg></button>
     </div>
     <div class="cluster">
-      <button data-k="shield" type="button">🛡</button>
-      <button data-k="thrust" type="button">▲</button>
-      <button data-k="fire" type="button">●</button>
+      <button data-k="shield" type="button" aria-label="Aktifkan perisai"><svg class="icon" aria-hidden="true"><use href="#shield"></use></svg></button>
+      <button data-k="thrust" type="button" aria-label="Dorong kapal"><svg class="icon" aria-hidden="true"><use href="#thrust"></use></svg></button>
+      <button data-k="fire" type="button" aria-label="Tembak"><svg class="icon" aria-hidden="true"><use href="#fire"></use></svg></button>
     </div>
   </div>
 
@@ -174,7 +208,7 @@
         <div>🛡 Shift = perisai energi</div>
       </div>
       <div class="cta"><button id="startBtn" class="big" type="button">Mulai Misi</button></div>
-      <p id="menuNote">Butuh browser modern dengan WebGPU, misalnya Chrome/Edge terbaru.</p>
+      <p id="menuNote">Butuh browser modern dengan WebGPU dan akselerasi GPU aktif. Dukungan berbeda-beda menurut perangkat dan browser.</p>
     </div>
   </div>
 
@@ -200,7 +234,7 @@
   <div id="noGpu" class="overlay" hidden>
     <div class="card">
       <h1>WebGPU Tidak Tersedia</h1>
-      <p>Browser/perangkat ini tidak mengekspos <b>navigator.gpu</b>. Aktifkan WebGPU atau buka file ini di Chrome/Edge desktop terbaru dengan akselerasi GPU.</p>
+      <p>Browser/perangkat ini tidak mengekspos <b>navigator.gpu</b>, atau konteks GPU terputus. Gunakan browser dengan WebGPU dan akselerasi GPU aktif, lalu muat ulang halaman.</p>
     </div>
   </div>
 
