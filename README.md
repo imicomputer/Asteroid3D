@@ -10,6 +10,15 @@ Asteroid3D is a dependency-free WebGPU arcade game. The HTML keeps the original 
 - `math.js` — vector and matrix helpers.
 - `renderer.js` — WebGPU setup, procedural meshes, shaders, and rendering.
 
+## Run tests
+
+The test suite uses Node's built-in test runner and does not require a browser, GPU,
+server, or additional dependencies:
+
+```sh
+npm test
+```
+
 ## Run locally
 
 WebGPU and ES modules require a local HTTP server (opening the HTML with `file://` is not supported). From this directory, run for example:
